@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flood Susceptibility Tool</title>
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script src="https://unpkg.com/georaster/dist/georaster.browserify.min.js"></script>
+    <script src="https://unpkg.com/georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.min.js"></script>
+
+
+    <style>
+        #map { height: 400px; margin-bottom: 20px; }
+        body { font-family: Arial; padding: 20px; }
+
+        #suggestions {
+            list-style: none;
+            padding: 0;
+            margin-top: 0;
+            border: 1px solid #ccc;
+            max-width: 450px;
+            background: white;
+            position: absolute;
+            z-index: 1000;
+        }
+
+        #suggestions li {
+            padding: 6px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        #suggestions li:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>Flood Susceptibility Tool</h2>
+
+<input type="text" id="address" placeholder="Enter address" size="50">
+<button onclick="runAddress()">Run (Address)</button>
+<button onclick="clearAll()">Clear</button>
+
+<ul id="suggestions"></ul>
+
+<h3>Or click on map:</h3>
+
+<div id="map"></div>
+
+<label>
+    <input type="checkbox" id="toggleRaster">
+    Show Flood Susceptibility
+</label>
+
+<br>
+
+<label>
+    Transparency:
+    <input type="range" id="opacitySlider" min="0" max="1" step="0.1" value="0.6">
+</label>
+
+
+<img id="result" style="margin-top:20px; max-width:100%; border:1px solid #ccc;">
+<p></p>
+<a id="downloadLink" href="/image" download="flood_report.png"
+   style="display:none; padding:8px; background:#007BFF; color:white; text-decoration:none;">
+   Download PNG
+</a>
+<p></p>
+<script>
+
+let currentLat = null;
+let currentLon = null;
+let rasterLayer = null;
+
+function loadSubsetRaster() {
+
+    if (!currentLat || !currentLon) {
+        alert("Select a location first");
+        return;
+    }
+
+    fetch("/subset", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            lat: currentLat,
+            lon: currentLon
+        })
+    })
+    .then(res => res.arrayBuffer())
+    .then(arrayBuffer => parseGeoraster(arrayBuffer))
+    .then(georaster => {
+
+        console.log("Subset received", georaster);
+
+        // remove previous layer
+        if (rasterLayer) {
+            map.removeLayer(rasterLayer);
+        }
+
+        rasterLayer = new GeoRasterLayer({
+            georaster: georaster,
+            opacity: document.getElementById("opacitySlider").value,
+            resolution: 128,
+            pixelValuesToColorFn: function(val) {
+
+                if (!val || val[0] == null) return null;
+
+                let v = val[0];
+
+                if (v < 39) return "rgba(200,200,200,0.5)";
+                if (v < 80) return "rgba(255,165,0,0.5)";
+                return "rgba(255,0,0,0.5)";
+            }
+        });
+
+        rasterLayer.addTo(map);
+        map.fitBounds(rasterLayer.getBounds());
+
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Subset failed");
+    });
+}
+
+
+// ---------------------------
+// MAP
+// ---------------------------
+
+var map = L.map('map').setView([45.4, -75.7], 10);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+}).addTo(map);
+
+var marker;
+
+// ---------------------------
+// CLICK HANDLER
+// ---------------------------
+
+map.on('click', function(e) {
+
+    var lat = e.latlng.lat;
+    var lon = e.latlng.lng;
+
+    if (marker) map.removeLayer(marker);
+
+    marker = L.marker([lat, lon]).addTo(map);
+
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&countrycodes=ca`)
+        .then(res => res.json())
+        .then(data => {
+
+            let address = "Unknown location";
+
+            if (data && data.display_name) {
+                address = data.display_name;
+            }
+
+            runCoords(lat, lon, address);
+        });
+        
+    currentLat = lat;
+    currentLon = lon;
+
+});
+
+// ---------------------------
+// AUTOCOMPLETE
+// ---------------------------
+
+let timeout = null;
+
+document.getElementById("address").addEventListener("input", function () {
+
+    let query = this.value;
+    let list = document.getElementById("suggestions");
+
+    clearTimeout(timeout);
+
+    if (query.length < 3) {
+        list.innerHTML = "";
+        return;
+    }
+
+    timeout = setTimeout(() => {
+
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=ca&limit=5`)
+            .then(res => res.json())
+            .then(data => {
+
+                list.innerHTML = "";
+
+                data.slice(0, 5).forEach(item => {
+
+                    let li = document.createElement("li");
+                    li.textContent = item.display_name;
+
+                    li.onclick = function () {
+                        document.getElementById("address").value = item.display_name;
+                        list.innerHTML = "";
+                    };
+
+                    list.appendChild(li);
+                });
+
+            });
+
+    }, 300); // debounce
+
+});
+
+// ---------------------------
+// RUN WITH ADDRESS
+// ---------------------------
+
+function runAddress() {
+
+    let inputAddress = document.getElementById("address").value;
+
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${inputAddress}&countrycodes=ca&limit=5`)
+        .then(res => res.json())
+        .then(data => {
+
+            if (!data.length) {
+                alert("Address not found");
+                return;
+            }
+
+            let lat = parseFloat(data[0].lat);
+            let lon = parseFloat(data[0].lon);
+
+            map.setView([lat, lon], 14);
+
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lon]).addTo(map);
+
+            // ✅ use CLEAN geocoded address
+            let fullAddress = data[0].display_name;
+
+            runCoords(lat, lon, fullAddress);
+        });
+    currentLat = lat;
+    currentLon = lon;
+}
+
+// ---------------------------
+// RUN WITH COORDS
+// ---------------------------
+
+function runCoords(lat, lon, address=null) {
+
+    fetch("/run", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            lat: lat,
+            lon: lon,
+            address: address
+        })
+    })
+    .then(res => res.json())
+    .then(data => showResult(data));
+}
+
+// ---------------------------
+// SHOW RESULT
+// ---------------------------
+
+function showResult(data) {
+
+    if (data.status === "ok") {
+
+        const img = document.getElementById("result");
+        const link = document.getElementById("downloadLink");
+
+        link.style.display = "none";
+
+        img.onload = function() {
+            link.style.display = "inline";
+        };
+
+        img.src = data.image + "?t=" + Date.now();
+
+    } else {
+        alert(data.message);
+    }
+}
+
+// ---------------------------
+// CLEAR
+// ---------------------------
+
+function clearAll() {
+
+    if (marker) {
+        map.removeLayer(marker);
+        marker = null;
+    }
+
+    document.getElementById("result").src = "";
+    document.getElementById("address").value = "";
+    document.getElementById("suggestions").innerHTML = "";
+
+    map.setView([45.4, -75.7], 10);
+}
+
+
+
+const rasterURL = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-current.tif";
+
+document.getElementById("toggleRaster").addEventListener("change", function () {
+
+    if (this.checked) {
+        loadSubsetRaster();
+    } else {
+        if (rasterLayer) {
+            map.removeLayer(rasterLayer);
+        }
+    }
+
+});
+
+   
+document.getElementById("opacitySlider").addEventListener("input", function () {
+    if (rasterLayer) {
+        rasterLayer.setOpacity(this.value);
+    }
+});
+
+document.getElementById("toggleRaster").addEventListener("change", function () {
+
+    if (this.checked) {
+        loadSubsetRaster();
+    } else {
+        if (rasterLayer) {
+            map.removeLayer(rasterLayer);
+        }
+    }
+
+});
+
+
+
+</script>
+
+</body>
+</html>
