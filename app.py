@@ -14,8 +14,8 @@ OUTPUT_FILE = "flood_report.png"
 
 @app.route("/")
 def home():
-    return send_file("index.html")
-
+    #return send_file("index.html")
+    return "Backend is running"
 
 
 from flask import request, jsonify
