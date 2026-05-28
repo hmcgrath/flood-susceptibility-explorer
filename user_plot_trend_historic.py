@@ -24,8 +24,14 @@ SLOPE_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/
 CURRENT_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-current.tif"
 
 # Trend thresholds
-X = 1.0     # strong change
-XA = 0.3    # weak change
+# ---------------------------
+# CLASSIFICATION THRESHOLDS
+# ---------------------------
+#Strong shift  → slope > 5000 or < -5000  
+#Weak shift    → slope between 2000–5000  
+#No change     → -2000 to +2000  
+X = 5000     # strong change
+XA = 2000    # weak change
 
 ##Helper function
 
@@ -139,11 +145,6 @@ def compute_trend_from_slope(slope_value):
     # ---------------------------
     slope = slope_value - 10000  # center at zero
 
-    # ---------------------------
-    # CLASSIFICATION THRESHOLDS
-    # ---------------------------
-    X = 5000    # strong change
-    XA = 2000   # weak change
 
     # ---------------------------
     # CLASSIFICATION
@@ -223,7 +224,7 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
 
     slope_val = sample_raster(SLOPE_RASTER, x, y)
 
-    slope, label, _ = compute_trend_from_slope(slope_val)
+    slope, trend_label, _ = compute_trend_from_slope(slope_val)
 
     current_label = classify_fs(current_val)
 
