@@ -1,11 +1,13 @@
 from flask import Flask, request, jsonify, send_file
-import os
-from user_plot_trend_historic import run_analysis  # your script
-
-from flask_cors import CORS #new
-CORS(app) #new
+from flask_cors import CORS
 
 app = Flask(__name__)
+
+# ✅ THIS must come right after app creation
+CORS(app)
+
+import os
+from user_plot_trend_historic import run_analysis  # script for exploring rasters and plot
 
 OUTPUT_FILE = "flood_report.png"
 
