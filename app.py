@@ -20,7 +20,7 @@ def home():
 
 from flask import request, jsonify
 
-@app.route("/run", methods=["POST", "OPTIONS"])
+@app.route("/run", methods=["POST"])
 def run():
     if request.method == "OPTIONS":
         return '', 200  # ✅ Handle preflight cleanly
