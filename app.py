@@ -2,6 +2,9 @@ from flask import Flask, request, jsonify, send_file
 import os
 from user_plot_trend_historic import run_analysis  # your script
 
+from flask_cors import CORS #new
+CORS(app) #new
+
 app = Flask(__name__)
 
 OUTPUT_FILE = "flood_report.png"
