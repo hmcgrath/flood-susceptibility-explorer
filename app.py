@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 import os
-#from user_plot_trend_historic import run_analysis  # script for exploring rasters and plot
+from user_plot_trend_historic import run_analysis  # script for exploring rasters and plot
 
 OUTPUT_FILE = "flood_report.png"
 
