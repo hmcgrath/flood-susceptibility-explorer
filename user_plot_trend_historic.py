@@ -60,7 +60,27 @@ def clean_address(address):
 # ---------------------------
 # GEOCODING (Nominatim)
 # ---------------------------
+
 def geocode_address(address):
+    url = "https://geolocator.api.geo.ca/"
+    params = {
+        "q": address,
+        "lang": "en"
+    }
+
+    response = requests.get(url, params=params)
+    response.raise_for_status()
+
+    data = response.json()
+
+    if not data:
+        raise ValueError("No results found")
+
+    result = data[0]
+
+    return float(result["lat"]), float(result["lon"])
+    
+def geocode_address_nom(address):
     url = "https://nominatim.openstreetmap.org/search"
     params = {"q": address, "format": "json", "limit": 1}
 
