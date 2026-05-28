@@ -17,8 +17,13 @@ def home():
     return send_file("index.html")
 
 
-@app.route("/run", methods=["POST"])
+
+from flask import request, jsonify
+
+@app.route("/run", methods=["POST", "OPTIONS"])
 def run():
+    if request.method == "OPTIONS":
+        return '', 200  # ✅ Handle preflight cleanly
 
     data = request.json
 
