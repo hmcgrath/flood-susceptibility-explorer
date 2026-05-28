@@ -55,6 +55,7 @@ This application combines **time-series analysis, trend interpretation, and dyna
 * Extract raster values (2000–2023)
 * Compute trend
 * Generate plot
+* *** The rules and class results are prelimnary and can be modified by users. 
 
 ### 3. Dynamic raster subset
 
