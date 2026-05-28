@@ -42,6 +42,24 @@
 
 <h2>Flood Susceptibility Tool</h2>
 
+
+<div style="margin-top:20px; font-size:14px; line-height:1.5; max-width:800px;">
+
+<p>
+This tool shows <strong>flood susceptibility</strong>, based on outputs from a machine learning model trained using historical flood locations and environmental data across Canada. The model (XGBoost) uses information such as elevation, soil type, land cover, vegetation, rainfall, temperature, and geographic context to estimate how likely an area is to experience flooding conditions. The results shown here come from the <a href="https://open.canada.ca/data/en/dataset/1074f781-85d3-4c86-86cb-fd1c339197dc" target="_blank">Flood Susceptibility Mapping dataset</a>, which provides annual maps from 2000 to 2023 and supports analysis of how conditions change over time.
+</p>
+
+<p>
+It is important to note that <strong>flood susceptibility is not the same as flood risk</strong>. Susceptibility values describe how suitable an area is for flooding based on environmental conditions and patterns in past events. They are intended for understanding trends and patterns at regional scales, not for predicting flooding at individual properties or supporting engineering or building decisions. The results shown in this tool are for <strong>informational purposes only</strong> and should be interpreted with caution, especially at local scales.
+</p>
+
+<p>
+For official flood risk information, please use Canada's Flood Risk Finder, which is part of a national platform developed by Public Safety Canada. This tool allows users to search for a specific address and provides a risk rating from low to extreme. You can access it here: <a href="https://www.canada.ca/en/public-safety-canada/news/2026/04/government-of-canada-creates-platform-for-canada-wide-flood-risk-awareness-canadas-flood-risk-finder.html" target="_blank">Canada’s Flood Risk Finder</a>. In cases where results differ, the Flood Risk Finder should be considered the authoritative and official source.
+</p>
+
+</div>
+
+    
 <input type="text" id="address" placeholder="Enter address" size="50">
 <button onclick="runAddress()">Run (Address)</button>
 <button onclick="clearAll()">Clear</button>
@@ -85,7 +103,7 @@ function loadSubsetRaster() {
         return;
     }
 
-    fetch("/subset", {
+    fetch("https://hmcgrath.github.io/flood-susceptibility-explorer.onrender.com/subset", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
@@ -258,11 +276,9 @@ function runAddress() {
 // ---------------------------
 
 function runCoords(lat, lon, address=null) {
-    to run github action
-    //alert("Analysis requires backend — see local version");
 
-    fetch("/run", {
-       method: "POST",
+    fetch("https://hmcgrath.github.io/flood-susceptibility-explorer.onrender.com/run", {
+        method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
             lat: lat,
@@ -270,9 +286,19 @@ function runCoords(lat, lon, address=null) {
             address: address
         })
     })
-    .then(res => res.json())
-    .then(data => showResult(data));
+    .then(res => {
+        if (!res.ok) {
+            throw new Error("Server error: " + res.status);
+        }
+        return res.json();
+    })
+    .then(data => showResult(data))
+    .catch(err => {
+        console.error(err);
+        alert("Error connecting to backend");
+    });
 }
+
 
 // ---------------------------
 // SHOW RESULT
