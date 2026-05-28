@@ -258,20 +258,20 @@ function runAddress() {
 // ---------------------------
 
 function runCoords(lat, lon, address=null) {
-    //to run github action
-    alert("Analysis requires backend — see local version");
+    to run github action
+    //alert("Analysis requires backend — see local version");
 
-    //fetch("/run", {
-    //   method: "POST",
-    //    headers: {"Content-Type": "application/json"},
-    //    body: JSON.stringify({
-    //        lat: lat,
-    //        lon: lon,
-    //        address: address
-    //    })
-    //})
-    //.then(res => res.json())
-    //.then(data => showResult(data));
+    fetch("/run", {
+       method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            lat: lat,
+            lon: lon,
+            address: address
+        })
+    })
+    .then(res => res.json())
+    .then(data => showResult(data));
 }
 
 // ---------------------------
