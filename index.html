@@ -85,7 +85,7 @@ function loadSubsetRaster() {
         return;
     }
 
-    fetch("/subset", {
+    fetch("https://flood-susceptibility-explorer.onrender.com/subset", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
@@ -258,11 +258,9 @@ function runAddress() {
 // ---------------------------
 
 function runCoords(lat, lon, address=null) {
-    //to run github action
-    //alert("Analysis requires backend — see local version");
 
-    fetch("/run", {
-       method: "POST",
+    fetch("https://flood-susceptibility-explorer.onrender.com/run", {
+        method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
             lat: lat,
@@ -270,9 +268,19 @@ function runCoords(lat, lon, address=null) {
             address: address
         })
     })
-    .then(res => res.json())
-    .then(data => showResult(data));
+    .then(res => {
+        if (!res.ok) {
+            throw new Error("Server error: " + res.status);
+        }
+        return res.json();
+    })
+    .then(data => showResult(data))
+    .catch(err => {
+        console.error(err);
+        alert("Error connecting to backend");
+    });
 }
+
 
 // ---------------------------
 // SHOW RESULT
