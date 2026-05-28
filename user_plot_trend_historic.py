@@ -4,7 +4,7 @@ matplotlib.use("Agg")
 import numpy as np
 from rasterio.warp import transform
 import matplotlib.pyplot as plt
-from scipy import stats
+
 from sklearn.linear_model import LinearRegression
 import requests
 
@@ -124,85 +124,63 @@ def classify_fs(val):
 # TREND ANALYSIS
 # ---------------------------
 
-from scipy import stats
-from scipy import stats
 import numpy as np
 
-from scipy import stats
-import numpy as np
-
-def compute_trend(years, values):
+def compute_trend_from_slope(slope_value):
 
     # ---------------------------
-    # CLEAN DATA
+    # CLEAN INPUT
     # ---------------------------
-    mask = ~np.isnan(values)
-    years_clean = np.array(years)[mask]
-    values_clean = np.array(values)[mask]
-
-    if len(values_clean) < 3:
-        return np.nan, "Not enough data", np.nan
+    if slope_value is None or np.isnan(slope_value):
+        return np.nan, "No data", np.nan
 
     # ---------------------------
-    # LINEAR TREND
+    # DECODE SLOPE
     # ---------------------------
-    slope, intercept, r_value, p_value, std_err = stats.linregress(
-        years_clean, values_clean
-    )
-    r2 = r_value ** 2
+    slope = slope_value - 10000  # center at zero
 
     # ---------------------------
-    # STEP CHANGE (EARLY vs LATE)
+    # CLASSIFICATION THRESHOLDS
     # ---------------------------
-    mid = len(values_clean) // 2
-    early = values_clean[:mid]
-    late = values_clean[mid:]
-
-    early_mean = np.mean(early)
-    late_mean = np.mean(late)
-    level_change = late_mean - early_mean
-
-    # variability in recent years
-    late_std = np.std(late)
-
-    # ---------------------------
-    # CONSISTENCY
-    # ---------------------------
-    diffs = np.diff(values_clean)
-    increase_ratio = np.sum(diffs > 0) / len(diffs) if len(diffs) > 0 else 0
+    X = 5000    # strong change
+    XA = 2000   # weak change
 
     # ---------------------------
     # CLASSIFICATION
     # ---------------------------
 
-  
-    # ✅ 1. Strong level shift (only if big AND stable)
-    if abs(level_change) > 20 and late_std < 10:
-        if level_change > 0:
-            label = "Higher in recent years"
-        else:
-            label = "Lower in recent years"
+    # ✅ No change zone
+    if -XA <= slope <= XA:
+        label = "No clear change"
 
-    # ✅ 2. Noisy / inconsistent
-    elif r2 < 0.4 or increase_ratio < 0.6:
-        label = "No clear change — values go up and down over time"
-
-    # ✅ 3. Linear trend (only if real)
+    # ✅ decreases
     elif slope < -X:
         label = "Clear decrease"
     elif slope < -XA:
         label = "Slight decrease"
-    elif slope <= XA:
-        label = "No clear change"
+
+    # ✅ increases
     elif slope <= X:
         label = "Slight increase"
     else:
         label = "Clear increase"
 
-    return slope, label, r2
+    return slope, label, np.nan
+
+
 # ---------------------------
 # MAIN WORKFLOW
 # ---------------------------
+SLOPE_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-slope.tif"
+
+def sample_slope(x, y):
+    try:
+        with rasterio.open(SLOPE_RASTER) as src:
+            for val in src.sample([(x, y)]):
+                return val[0]
+    except Exception:
+        return np.nan
+
 def run_analysis(address=None, lat=None, lon=None, geocode=True):
 
     # ---------------------------
@@ -250,11 +228,15 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
     # TREND
     # ---------------------------
 
-    slope, trend_label, r = compute_trend(YEARS, values)
+    x, y = to_epsg3979(lat, lon)
+
+    slope_val = sample_slope(SLOPE_RASTER, x, y)
+
+    slope, label, _ = compute_trend_from_slope(slope_val)
+
     current_label = classify_fs(current_val)
 
     
-
     # ---------------------------
     # SUMMARY
     # ---------------------------
