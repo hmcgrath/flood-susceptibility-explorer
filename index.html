@@ -103,7 +103,7 @@ function loadSubsetRaster() {
         return;
     }
 
-    fetch("https://hmcgrath.github.io/flood-susceptibility-explorer.onrender.com/subset", {
+    fetch("https://flood-susceptibility-explorer.onrender.com/subset", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
@@ -275,9 +275,8 @@ function runAddress() {
 // RUN WITH COORDS
 // ---------------------------
 
-function runCoords(lat, lon, address=null) {
-
-    fetch("https://hmcgrath.github.io/flood-susceptibility-explorer.onrender.com/run", {
+function runCoords(lat, lon, address = null) {
+    fetch("https://flood-susceptibility-explorer.onrender.com/run", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
@@ -298,7 +297,6 @@ function runCoords(lat, lon, address=null) {
         alert("Error connecting to backend");
     });
 }
-
 
 // ---------------------------
 // SHOW RESULT
