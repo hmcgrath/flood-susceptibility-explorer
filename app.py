@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app)
 
 import os
-from user_plot_trend_historic import run_analysis  # script for exploring rasters and plot
+
 
 OUTPUT_FILE = "flood_report.png"
 
@@ -22,28 +22,35 @@ from flask import request, jsonify
 
 @app.route("/run", methods=["POST"])
 def run():
-    if request.method == "OPTIONS":
-        return '', 200  # ✅ Handle preflight cleanly
-
-    data = request.json
-
-    address = data.get("address")
-    lat = data.get("lat")
-    lon = data.get("lon")
-
     try:
+        from user_plot_trend_historic import run_analysis  # lazy import ✅
+
+        data = request.json
+        address = data.get("address")
+        lat = data.get("lat")
+        lon = data.get("lon")
+
         # Run your analysis
         run_analysis(address=address, lat=lat, lon=lon)
 
-        # Save output as a fixed file name
+        # Check output
         if os.path.exists("flood_susceptibility_report.png"):
-            return jsonify({"status": "ok", "image": "/image"})
-
+            return jsonify({
+                "status": "ok",
+                "image": "/image"
+            })
         else:
-            return jsonify({"status": "error", "message": "No output generated"})
+            return jsonify({
+                "status": "error",
+                "message": "No output generated"
+            })
 
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)})
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
 
 from flask import request, send_file
 import rasterio
