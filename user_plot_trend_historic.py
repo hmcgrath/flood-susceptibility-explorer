@@ -173,13 +173,6 @@ def compute_trend_from_slope(slope_value):
 # ---------------------------
 SLOPE_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-slope.tif"
 
-def sample_slope(x, y):
-    try:
-        with rasterio.open(SLOPE_RASTER) as src:
-            for val in src.sample([(x, y)]):
-                return val[0]
-    except Exception:
-        return np.nan
 
 def run_analysis(address=None, lat=None, lon=None, geocode=True):
 
@@ -230,7 +223,7 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
 
     x, y = to_epsg3979(lat, lon)
 
-    slope_val = sample_slope(SLOPE_RASTER, x, y)
+    slope_val = sample_raster(SLOPE_RASTER, x, y)
 
     slope, label, _ = compute_trend_from_slope(slope_val)
 
