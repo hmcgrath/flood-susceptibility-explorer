@@ -61,7 +61,7 @@ def clean_address(address):
 # GEOCODING (Nominatim)
 # ---------------------------
 
-def geocode_address(address):
+def geocode_address_cda(address):
     url = "https://geolocator.api.geo.ca/"
     params = {
         "q": address,
@@ -80,7 +80,7 @@ def geocode_address(address):
 
     return float(result["lat"]), float(result["lon"])
     
-def geocode_address_nom(address):
+def geocode_address(address):
     url = "https://nominatim.openstreetmap.org/search"
     params = {"q": address, "format": "json", "limit": 1}
 
