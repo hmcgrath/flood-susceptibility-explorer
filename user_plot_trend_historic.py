@@ -20,7 +20,7 @@ import textwrap
 YEARS = list(range(2000, 2024))
 
 RASTER_TEMPLATE = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-historic/fsm-{}-historic-mc.tif"
-
+SLOPE_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-slope.tif"
 CURRENT_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-current.tif"
 
 # Trend thresholds
@@ -171,8 +171,6 @@ def compute_trend_from_slope(slope_value):
 # ---------------------------
 # MAIN WORKFLOW
 # ---------------------------
-SLOPE_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-slope.tif"
-
 
 def run_analysis(address=None, lat=None, lon=None, geocode=True):
 
@@ -348,7 +346,7 @@ Trend describes how flood risk has changed since 2000.
 
 if __name__ == "__main__":
     #address = input("Enter your address: ")
-    #address = "6658 Benoit St, Ottawa, Ontario, Canada, K1C 3K9"
+    #address = "580 Booth St, Ottawa, Ontario, Canada"
     
     run_analysis(
         address="255 2nd St, Dryden, ON P8N 2V5, Canada",
@@ -358,20 +356,3 @@ if __name__ == "__main__":
     )
 
 ####
-# address="430 rue de la terrasse-eardley, Gatineau, Quebec, Canada",
-#lat=45.40818925757535, 
-#lon=-75.85714185767098,
-#geocode = False
-
-
-
-
-#address="668 Philip St, Fredericton, NB, Canada",
-#lat=45.96911515216952,  
-#lon=-66.62531685991145,
-#geocode = False
-
-#address="850 Riverside Dr, Fredericton, NB, Canada",
-#lat=45.93274745529327, 
-#lon=-66.60447980611909,
-#geocode = False
