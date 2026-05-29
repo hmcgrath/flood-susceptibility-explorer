@@ -73,7 +73,7 @@ For official flood risk information, please use Canada's Flood Risk Finder, whic
 <progress id="progressBar" value="0" max="100" style="display:none; width:100%;"></progress>
 
 <label>
-    <input type="checkbox" id="toggleRaster" disabled>
+    <input type="checkbox" id="toggleRaster">
     Show Flood Susceptibility
 </label>
 
@@ -81,14 +81,15 @@ For official flood risk information, please use Canada's Flood Risk Finder, whic
 
 <label>
     Transparency:
-    <input type="range" id="opacitySlider" min="0" max="1" step="0.1" disabled>
+    <input type="range" id="opacitySlider" min="0" max="1" step="0.1" value="0.6">
 </label>
 
 
 <img id="result" style="margin-top:20px; max-width:100%; border:1px solid #ccc;">
 <p></p>
-    <button id="downloadBtn" disabled>Download PNG</button>
-
+<a id="downloadLink" href="/image" download="flood_report.png"
+   style="display:none; padding:8px; background:#007BFF; color:white; text-decoration:none;">
+   Download PNG
 </a>
 <p></p>
 <script>
@@ -147,12 +148,15 @@ function loadSubsetRaster() {
         });
 
         rasterLayer.addTo(map);
-      })
+        map.fitBounds(rasterLayer.getBounds());
+
+    })
     .catch(err => {
-        console.error("Error loading raster:", err);
-        alert("Error loading raster");
+        console.error(err);
+        alert("Subset failed");
     });
 }
+
 
 // ---------------------------
 // MAP
@@ -254,27 +258,26 @@ function runAddress() {
         .then(res => res.json())
         .then(data => {
 
-           if (!data.length) {
-        alert("Address not found");
-        return;
-    }
+            if (!data.length) {
+                alert("Address not found");
+                return;
+            }
 
-    let lat = parseFloat(data[0].lat);
-    let lon = parseFloat(data[0].lon);
+            let lat = parseFloat(data[0].lat);
+            let lon = parseFloat(data[0].lon);
 
+            map.setView([lat, lon], 14);
+
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([lat, lon]).addTo(map);
+
+            // ✅ use CLEAN geocoded address
+            let fullAddress = data[0].display_name;
+
+            runCoords(lat, lon, fullAddress);
+        });
     currentLat = lat;
     currentLon = lon;
-
-    map.setView([lat, lon], 14);
-
-    if (marker) map.removeLayer(marker);
-    marker = L.marker([lat, lon]).addTo(map);
-
-    let fullAddress = data[0].display_name;
-
-    runCoords(lat, lon, fullAddress);
-        });
-
 }
 
 // ---------------------------
@@ -284,7 +287,7 @@ function runAddress() {
 function runCoords(lat, lon, address = null) {
 
     // ✅ Clear previous output
-    const img = document.getElementById("result");
+    const img = document.getElementById("resultImage");
     if (img) {
         img.src = "";
         img.style.display = "none";
@@ -298,7 +301,7 @@ function runCoords(lat, lon, address = null) {
         progress.style.display = "block";
         progress.value = 0;
 
-        // ✅ Simulate progress
+        // Simulate progress
         interval = setInterval(() => {
             if (progressValue < 90) {
                 progressValue += 5;
@@ -306,6 +309,7 @@ function runCoords(lat, lon, address = null) {
             }
         }, 300);
     }
+
 
     fetch("https://flood-susceptibility-explorer.onrender.com/run", {
         method: "POST",
@@ -322,9 +326,9 @@ function runCoords(lat, lon, address = null) {
         }
         return res.json();
     })
+    
     .then(data => {
-
-        // ✅ Finish progress
+        // Finish progress
         if (progress) {
             clearInterval(interval);
             progress.value = 100;
@@ -332,25 +336,15 @@ function runCoords(lat, lon, address = null) {
         }
 
         showResult(data);
-
-        // ✅ Enable UI controls
-        document.getElementById("toggleRaster").disabled = false;
-        document.getElementById("opacitySlider").disabled = false;
-        document.getElementById("downloadBtn").disabled = false;
-
     })
     .catch(err => {
-
-        if (progress) {
-            clearInterval(interval);
-            progress.style.display = "none";
-        }
+        if (progress) clearInterval(interval);
 
         console.error(err);
         alert("Error connecting to backend");
     });
-}
 
+}
 
 // ---------------------------
 // SHOW RESULT
@@ -361,7 +355,14 @@ function showResult(data) {
     if (data.status === "ok") {
 
         const img = document.getElementById("result");
-        
+        const link = document.getElementById("downloadLink");
+
+        link.style.display = "none";
+
+        img.onload = function() {
+            link.style.display = "inline";
+        };
+
         img.src = data.image + "?t=" + Date.now();
 
     } else {
@@ -391,6 +392,18 @@ function clearAll() {
 
 const rasterURL = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-current.tif";
 
+document.getElementById("toggleRaster").addEventListener("change", function () {
+
+    if (this.checked) {
+        loadSubsetRaster();
+    } else {
+        if (rasterLayer) {
+            map.removeLayer(rasterLayer);
+        }
+    }
+
+});
+
    
 document.getElementById("opacitySlider").addEventListener("input", function () {
     if (rasterLayer) {
@@ -409,23 +422,6 @@ document.getElementById("toggleRaster").addEventListener("change", function () {
     }
 
 });
-
-document.getElementById("downloadBtn").addEventListener("click", function () {
-    const img = document.getElementById("result");
-
-    if (!img.src) {
-        alert("No image to download");
-        return;
-    }
-
-    const a = document.createElement("a");
-    a.href = img.src;
-    a.download = "flood_susceptibility.png";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-});
-
 
 
 
