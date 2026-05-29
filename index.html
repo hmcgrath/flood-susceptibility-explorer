@@ -417,6 +417,23 @@ document.getElementById("toggleRaster").addEventListener("change", function () {
 
 });
 
+document.getElementById("downloadBtn").addEventListener("click", function () {
+    const img = document.getElementById("result");
+
+    if (!img.src) {
+        alert("No image to download");
+        return;
+    }
+
+    const a = document.createElement("a");
+    a.href = img.src;
+    a.download = "flood_susceptibility.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+});
+
+
 
 
 </script>
