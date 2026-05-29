@@ -298,7 +298,7 @@ function runCoords(lat, lon, address = null) {
         progress.style.display = "block";
         progress.value = 0;
 
-        // Simulate progress
+        // ✅ Simulate progress
         interval = setInterval(() => {
             if (progressValue < 90) {
                 progressValue += 5;
@@ -306,50 +306,51 @@ function runCoords(lat, lon, address = null) {
             }
         }, 300);
     }
-    
-fetch("https://flood-susceptibility-explorer.onrender.com/run", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-        lat: lat,
-        lon: lon,
-        address: address
+
+    fetch("https://flood-susceptibility-explorer.onrender.com/run", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            lat: lat,
+            lon: lon,
+            address: address
+        })
     })
-})
-.then(res => {
-    if (!res.ok) {
-        throw new Error("Server error: " + res.status);
-    }
-    return res.json();
-})
-.then(data => {
+    .then(res => {
+        if (!res.ok) {
+            throw new Error("Server error: " + res.status);
+        }
+        return res.json();
+    })
+    .then(data => {
 
-    // ✅ Finish progress
-    if (progress) {
-        clearInterval(interval);
-        progress.value = 100;
-        setTimeout(() => progress.style.display = "none", 500);
-    }
+        // ✅ Finish progress
+        if (progress) {
+            clearInterval(interval);
+            progress.value = 100;
+            setTimeout(() => progress.style.display = "none", 500);
+        }
 
-    showResult(data);
+        showResult(data);
 
-    // ✅ Enable UI controls
-    document.getElementById("toggleRaster").disabled = false;
-    document.getElementById("opacitySlider").disabled = false;
-    document.getElementById("downloadBtn").disabled = false;
+        // ✅ Enable UI controls
+        document.getElementById("toggleRaster").disabled = false;
+        document.getElementById("opacitySlider").disabled = false;
+        document.getElementById("downloadBtn").disabled = false;
 
-})
-.catch(err => {
-    
-    if (progress) {
+    })
+    .catch(err => {
+
+        if (progress) {
             clearInterval(interval);
             progress.style.display = "none";
         }
-    console.error(err);
-    alert("Error connecting to backend");
-});
-    
+
+        console.error(err);
+        alert("Error connecting to backend");
+    });
 }
+
 
 // ---------------------------
 // SHOW RESULT
