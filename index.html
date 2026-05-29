@@ -152,7 +152,7 @@ function loadSubsetRaster() {
         console.error("Error loading raster:", err);
         alert("Error loading raster");
     });
-
+}
 
 // ---------------------------
 // MAP
@@ -307,38 +307,45 @@ function runCoords(lat, lon, address = null) {
     }
 
 
-    fetch("https://flood-susceptibility-explorer.onrender.com/run", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            lat: lat,
-            lon: lon,
-            address: address
-        })
-    })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error("Server error: " + res.status);
-        }
-        return res.json();
-    })
     
-    .then(data => {
-        // Finish progress
-        if (progress) {
-            clearInterval(interval);
-            progress.value = 100;
-            setTimeout(() => progress.style.display = "none", 500);
-        }
-
-        showResult(data);
+fetch("https://flood-susceptibility-explorer.onrender.com/run", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+        lat: lat,
+        lon: lon,
+        address: address
     })
-    .catch(err => {
-        if (progress) clearInterval(interval);
+})
+.then(res => {
+    if (!res.ok) {
+        throw new Error("Server error: " + res.status);
+    }
+    return res.json();
+})
+.then(data => {
 
-        console.error(err);
-        alert("Error connecting to backend");
-    });
+    // ✅ Finish progress
+    if (progress) {
+        clearInterval(interval);
+        progress.value = 100;
+        setTimeout(() => progress.style.display = "none", 500);
+    }
+
+    showResult(data);
+
+    // ✅ Enable UI controls
+    document.getElementById("toggleRaster").disabled = false;
+    document.getElementById("opacitySlider").disabled = false;
+    document.getElementById("downloadBtn").disabled = false;
+
+})
+.catch(err => {
+    if (progress) clearInterval(interval);
+
+    console.error(err);
+    alert("Error connecting to backend");
+});
 
     
 .then(data => {
@@ -398,18 +405,6 @@ function clearAll() {
 
 
 const rasterURL = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-current.tif";
-
-document.getElementById("toggleRaster").addEventListener("change", function () {
-
-    if (this.checked) {
-        loadSubsetRaster();
-    } else {
-        if (rasterLayer) {
-            map.removeLayer(rasterLayer);
-        }
-    }
-
-});
 
    
 document.getElementById("opacitySlider").addEventListener("input", function () {
