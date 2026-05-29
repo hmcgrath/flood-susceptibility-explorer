@@ -203,8 +203,13 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
         
     location_str = address if address else f"Lat: {lat}, Lon: {lon}"
     if geocode == True and address is not None:
-        print(f"Geocoding address: {address}")
+    print(f"Geocoding address: {address}")
+
+    try:
         lat, lon = geocode_address(address)
+    except Exception as e:
+        print(f"Primary geocoder failed: {e}")
+        lat, lon = geocode_address_cda(address)
 
     elif lat is not None and lon is not None:
         print(f"Using provided coordinates: lat={lat}, lon={lon}")
