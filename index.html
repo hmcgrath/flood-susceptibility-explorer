@@ -9,7 +9,7 @@
 
     <script src="https://unpkg.com/georaster/dist/georaster.browserify.min.js"></script>
     <script src="https://unpkg.com/georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.min.js"></script>
-
+    <script src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
 
     <style>
         #map { height: 400px; margin-bottom: 20px; }
@@ -124,19 +124,26 @@ function loadSubsetRaster() {
             map.removeLayer(rasterLayer);
         }
 
+       const scale = chroma.scale("YlGnBu").domain([0, 100]);
+
         rasterLayer = new GeoRasterLayer({
             georaster: georaster,
             opacity: document.getElementById("opacitySlider").value,
             resolution: 128,
+        
             pixelValuesToColorFn: function(val) {
-
+        
                 if (!val || val[0] == null) return null;
-
+        
                 let v = val[0];
-
-                if (v < 39) return "rgba(200,200,200,0.5)";
-                if (v < 80) return "rgba(255,165,0,0.5)";
-                return "rgba(255,0,0,0.5)";
+        
+                // ✅ Handle nodata
+                if (v === 255) return null;  // transparent
+        
+                // ✅ Optional: clamp values
+                v = Math.max(0, Math.min(100, v));
+        
+                return scale(v).alpha(0.6).css();
             }
         });
 
