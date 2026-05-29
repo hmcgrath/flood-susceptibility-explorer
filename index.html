@@ -361,14 +361,7 @@ function showResult(data) {
     if (data.status === "ok") {
 
         const img = document.getElementById("result");
-        const link = document.getElementById("downloadLink");
-
-        link.style.display = "none";
-
-        img.onload = function() {
-            link.style.display = "inline";
-        };
-
+        
         img.src = data.image + "?t=" + Date.now();
 
     } else {
