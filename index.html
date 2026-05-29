@@ -254,23 +254,25 @@ function runAddress() {
         .then(res => res.json())
         .then(data => {
 
-            if (!data.length) {
-                alert("Address not found");
-                return;
-            }
+           if (!data.length) {
+        alert("Address not found");
+        return;
+    }
 
-            let lat = parseFloat(data[0].lat);
-            let lon = parseFloat(data[0].lon);
+    let lat = parseFloat(data[0].lat);
+    let lon = parseFloat(data[0].lon);
 
-            map.setView([lat, lon], 14);
+    currentLat = lat;
+    currentLon = lon;
 
-            if (marker) map.removeLayer(marker);
-            marker = L.marker([lat, lon]).addTo(map);
+    map.setView([lat, lon], 14);
 
-            // ✅ use CLEAN geocoded address
-            let fullAddress = data[0].display_name;
+    if (marker) map.removeLayer(marker);
+    marker = L.marker([lat, lon]).addTo(map);
 
-            runCoords(lat, lon, fullAddress);
+    let fullAddress = data[0].display_name;
+
+    runCoords(lat, lon, fullAddress);
         });
     currentLat = lat;
     currentLon = lon;
