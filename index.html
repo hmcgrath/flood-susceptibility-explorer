@@ -283,7 +283,7 @@ function runAddress() {
 function runCoords(lat, lon, address = null) {
 
     // ✅ Clear previous output
-    const img = document.getElementById("resultImage");
+    const img = document.getElementById("result");
     if (img) {
         img.src = "";
         img.style.display = "none";
@@ -339,8 +339,11 @@ fetch("https://flood-susceptibility-explorer.onrender.com/run", {
 
 })
 .catch(err => {
-    if (progress) clearInterval(interval);
-
+    
+    if (progress) {
+            clearInterval(interval);
+            progress.style.display = "none";
+        }
     console.error(err);
     alert("Error connecting to backend");
 });
