@@ -105,56 +105,37 @@ function loadSubsetRaster() {
         return;
     }
 
-    fetch("https://flood-susceptibility-explorer.onrender.com/subset", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            lat: currentLat,
-            lon: currentLon
-        })
-    })
-    .then(res => res.arrayBuffer())
-    .then(arrayBuffer => parseGeoraster(arrayBuffer))
-    .then(georaster => {
+    // Remove previous layer
+    if (rasterLayer) {
+        map.removeLayer(rasterLayer);
+    }
 
-        console.log("Subset received", georaster);
+    const scale = chroma.scale("YlGnBu").domain([0, 100]);
 
-        // remove previous layer
-        if (rasterLayer) {
-            map.removeLayer(rasterLayer);
+    rasterLayer = new GeoRasterLayer({
+
+        // ✅ Point directly to your COG endpoint
+        georaster: null,
+        url: `https://flood-susceptibility-explorer.onrender.com/subset-cog?lat=${currentLat}&lon=${currentLon}`,
+
+        opacity: document.getElementById("opacitySlider").value,
+        resolution: 256,   // higher for tiles
+
+        pixelValuesToColorFn: function (val) {
+
+            if (!val || val[0] == null) return null;
+
+            let v = val[0];
+
+            if (v === 255) return null;
+
+            v = Math.max(0, Math.min(100, v));
+
+            return scale(v).alpha(0.6).css();
         }
-
-       const scale = chroma.scale("YlGnBu").domain([0, 100]);
-
-        rasterLayer = new GeoRasterLayer({
-            georaster: georaster,
-            opacity: document.getElementById("opacitySlider").value,
-            resolution: 128,
-        
-            pixelValuesToColorFn: function(val) {
-        
-                if (!val || val[0] == null) return null;
-        
-                let v = val[0];
-        
-                // ✅ Handle nodata
-                if (v === 255) return null;  // transparent
-        
-                // ✅ Optional: clamp values
-                v = Math.max(0, Math.min(100, v));
-        
-                return scale(v).alpha(0.6).css();
-            }
-        });
-
-        rasterLayer.addTo(map);
-        map.fitBounds(rasterLayer.getBounds());
-
-    })
-    .catch(err => {
-        console.error(err);
-        alert("Subset failed");
     });
+
+    rasterLayer.addTo(map);
 }
 
 
