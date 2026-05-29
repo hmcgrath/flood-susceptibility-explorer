@@ -67,8 +67,63 @@ For official flood risk information, please use Canada's Flood Risk Finder, whic
 
 <ul id="suggestions"></ul>
 
-<h3>Or click on map:</h3>
+```html id="y0yjlwm"
+<div style="margin-top:20px; font-size:14px; line-height:1.6; max-width:80%;">
 
+<h3>Instructions</h3>
+
+<ol>
+
+<li>
+<strong>Select a location to query</strong> using either an address or the map.
+    
+    <ol type="a">
+    
+    <li>
+    <strong>Search by address:</strong> begin typing an address in the search box. The address will attempt to auto-complete as you type. If the desired address does not appear immediately, continue typing until it appears in the list, then click <strong>Run (Address)</strong>.
+    </li>
+
+    <li>
+    <strong>Select from the map:</strong> zoom to the area of interest and click a location directly on the map.
+    </li>
+
+    </ol>
+</li>
+
+<br>
+
+<li>
+A progress bar below the map will show the processing progress while the query is running.
+</li>
+
+<br>
+
+<li>
+A figure will appear below the map showing:
+    <ul>
+        <li>flood susceptibility values over time (2000–2023)</li>
+        <li>the current present-day flood susceptibility value for the selected location</li>
+    </ul>
+</li>
+
+<br>
+
+<li>
+You can enable the raster overlay using the <strong>Show Flood Susceptibility</strong> checkbox and adjust the transparency slider to better view the underlying map.
+    
+    <ul>
+        <li><strong>Darker blue colours</strong> indicate higher flood susceptibility</li>
+        <li><strong>Yellow colours</strong> indicate lower flood susceptibility</li>
+    </ul>
+</li>
+
+</ol>
+
+</div>
+
+
+
+    
 <div id="map"></div>
 <progress id="progressBar" value="0" max="100" style="display:none; width:100%;"></progress>
 
