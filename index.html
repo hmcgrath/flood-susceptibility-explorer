@@ -305,8 +305,6 @@ function runCoords(lat, lon, address = null) {
             }
         }, 300);
     }
-
-
     
 fetch("https://flood-susceptibility-explorer.onrender.com/run", {
     method: "POST",
@@ -346,18 +344,7 @@ fetch("https://flood-susceptibility-explorer.onrender.com/run", {
     console.error(err);
     alert("Error connecting to backend");
 });
-
     
-.then(data => {
-    showResult(data);
-
-    // ✅ Enable UI controls
-    document.getElementById("toggleRaster").disabled = false;
-    document.getElementById("opacitySlider").disabled = false;
-    document.getElementById("downloadBtn").disabled = false;
-})
-
-
 }
 
 // ---------------------------
