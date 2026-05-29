@@ -78,7 +78,7 @@ def geocode_address_cda(address):
 
     result = data[0]
 
-    return float(result["lat"]), float(result["lon"])
+    return float(result["lat"]), float(result["lng"])
     
 def geocode_address(address):
     url = "https://nominatim.openstreetmap.org/search"
