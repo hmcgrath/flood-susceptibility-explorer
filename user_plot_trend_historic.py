@@ -200,20 +200,21 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
     # ---------------------------
     if address is None or address == "":
         address = f"{lat:.4f}, {lon:.4f}"
-        
+
     location_str = address if address else f"Lat: {lat}, Lon: {lon}"
+    
     if geocode == True and address is not None:
-    print(f"Geocoding address: {address}")
-
-    try:
-        lat, lon = geocode_address(address)
-    except Exception as e:
-        print(f"Primary geocoder failed: {e}")
-        lat, lon = geocode_address_cda(address)
-
+        print(f"Geocoding address: {address}")
+    
+        try:
+            lat, lon = geocode_address(address)
+        except Exception as e:
+            print(f"Primary geocoder failed: {e}")
+            lat, lon = geocode_address_cda(address)
+    
     elif lat is not None and lon is not None:
         print(f"Using provided coordinates: lat={lat}, lon={lon}")
-
+    
     else:
         raise ValueError("You must provide either an address or lat/lon coordinates")
 
