@@ -376,6 +376,12 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
     current_label = classify_fs(current_val)
 
     label_var, r2 = compute_trend(YEARS, values)
+    wrapped_label = textwrap.fill(
+    label_var,
+    width=30,
+    subsequent_indent="       "
+)
+
     # ---------------------------
     # SUMMARY
     # ---------------------------
@@ -465,8 +471,8 @@ Trend describes how flood risk has changed since 2000.
     text = f"""Current Class: {current_label}
     Present day value: {current_val:.1f}
 
-    Trend: {trend_label}
-    Trend variability: {label_var}
+    Trend: {wrapped_label}
+    
     """
 
     plt.text(
