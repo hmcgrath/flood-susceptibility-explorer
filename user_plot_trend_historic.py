@@ -35,6 +35,29 @@ XA = 2000    # weak change
 
 ##Helper function
 
+def linear_trend(years, values):
+    mask = ~np.isnan(values)
+
+    x = np.asarray(years)[mask]
+    y = np.asarray(values)[mask]
+
+    if len(y) < 3:
+        return np.nan, np.nan, np.nan
+
+    # linear regression
+    slope, intercept = np.polyfit(x, y, 1)
+
+    # predictions
+    y_pred = slope * x + intercept
+
+    # R²
+    ss_res = np.sum((y - y_pred) ** 2)
+    ss_tot = np.sum((y - np.mean(y)) ** 2)
+
+    r2 = 1 - ss_res / ss_tot if ss_tot > 0 else np.nan
+
+    return slope, intercept, r2
+
 def clean_address(address):
     if not address:
         return ""
@@ -189,6 +212,103 @@ def compute_trend_from_slope(slope_value):
     return slope, label, np.nan
 
 
+def compute_trend(years, values):
+    """
+    Computes:
+    - linear trend slope
+    - contextual trend label (direction + variability)
+    - r²
+    """
+
+    # ---------------------------
+    # CLEAN DATA
+    # ---------------------------
+    mask = ~np.isnan(values)
+    years_clean  = np.array(years)[mask]
+    values_clean = np.array(values)[mask]
+
+    if len(values_clean) < 3:
+        return np.nan, "Not enough data", np.nan
+
+    # ---------------------------
+    # LINEAR TREND
+    # ---------------------------
+    slope, intercept = np.polyfit(years_clean, values_clean, 1)
+
+    pred = slope * years_clean + intercept
+
+    ss_res = np.sum((values_clean - pred) ** 2)
+    ss_tot = np.sum((values_clean - np.mean(values_clean)) ** 2)
+
+    r2 = 1 - ss_res / ss_tot if ss_tot > 0 else np.nan
+    # ---------------------------
+    # STEP CHANGE (EARLY vs LATE)
+    # ---------------------------
+    mid = len(values_clean) // 2
+    early = values_clean[:mid]
+    late  = values_clean[mid:]
+
+    early_mean = np.mean(early)
+    late_mean  = np.mean(late)
+    level_change = late_mean - early_mean
+
+    # variability in recent years
+    late_std = np.std(late)
+
+    # ---------------------------
+    # CONSISTENCY
+    # ---------------------------
+    diffs = np.diff(values_clean)
+    increase_ratio = np.sum(diffs > 0) / len(diffs) if len(diffs) > 0 else 0
+
+    # ---------------------------
+    # VARIABILITY CONTEXT
+    # ---------------------------
+    overall_std = np.std(values_clean)
+    recent_vs_past = late_std / (np.std(early) + 1e-9)
+
+    if recent_vs_past > 1.5:
+        variability_context = "with increasing variability in recent years"
+    elif recent_vs_past < 0.75:
+        variability_context = "with stabilizing values recently"
+    else:
+        variability_context = "with typical variability"
+
+    # ---------------------------
+    # CLASSIFICATION
+    # ---------------------------
+
+    # 1. Strong level shift (only if big AND stable)
+    if abs(level_change) > 20 and late_std < 10:
+        if level_change > 0:
+            label = "Higher in recent years"
+        else:
+            label = "Lower in recent years"
+
+    # 2. Noisy / inconsistent
+    elif r2 < 0.4 or increase_ratio < 0.6:
+        label = "No clear change — values fluctuate over time"
+
+    # 3. Linear trend (directional)
+    else:
+        if slope < -X:
+            label = "Clear decrease"
+        elif slope < -XA:
+            label = "Slight decrease"
+        elif slope <= XA:
+            label = "No clear change"
+        elif slope <= X:
+            label = "Slight increase"
+        else:
+            label = "Clear increase"
+
+    # ---------------------------
+    # FINAL LABEL WITH CONTEXT
+    # ---------------------------
+    label = f"{label} ({variability_context})"
+
+    return label, r2
+
 # ---------------------------
 # MAIN WORKFLOW
 # ---------------------------
@@ -252,9 +372,10 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
 
     slope, trend_label, _ = compute_trend_from_slope(slope_val)
 
+
     current_label = classify_fs(current_val)
 
-    
+    label_var, r2 = compute_trend(YEARS, values)
     # ---------------------------
     # SUMMARY
     # ---------------------------
@@ -270,6 +391,8 @@ Current flood susceptibility: {current_label}
 Value: {current_val:.1f} out of 100
 
 Trend: {trend_label}
+Trend variability: {label_var}
+R²: {r2:.2f}
 
 What this means:
 - Low: flooding is unlikely
