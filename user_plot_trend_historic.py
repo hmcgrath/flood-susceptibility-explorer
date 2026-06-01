@@ -466,7 +466,7 @@ Trend describes how flood risk has changed since 2000.
     Present day value: {current_val:.1f}
 
     Trend: {trend_label}
-    
+    Trend variability: {label_var}
     """
 
     plt.text(
