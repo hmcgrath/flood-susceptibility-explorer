@@ -293,8 +293,8 @@ Trend describes how flood risk has changed since 2000.
     # Normalize color scale FIXED from 0 to 100
     norm = mcolors.Normalize(vmin=0, vmax=100)
 
-    # Colormap: orange → red
-    cmap = plt.cm.OrRd
+    # Colormap: yellow green blue
+    cmap = plt.cm.YlGnBu
 
     # Scatter plot (points only)
     sc = plt.scatter(
@@ -321,7 +321,9 @@ Trend describes how flood risk has changed since 2000.
     # Colorbar (important for interpretation)
     cbar = plt.colorbar(sc)
     cbar.set_label("Flood Susceptibility (0–100)")
-
+    
+    #set y limit fixed 0 to 100
+    plt.ylim(0, 100)
     # Labels
     plt.xlabel("Year")
     plt.ylabel("Flood Susceptibility (0–100)")
