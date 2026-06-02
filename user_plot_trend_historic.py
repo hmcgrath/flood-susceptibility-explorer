@@ -378,7 +378,7 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
     label_var, r2 = compute_trend(YEARS, values)
     wrapped_label = textwrap.fill(
     label_var,
-    width=30,
+    width=45,
     subsequent_indent="       "
 )
 
@@ -459,7 +459,7 @@ Trend describes how flood risk has changed since 2000.
     address = clean_address(address)
     
     wrapped_address = "\n".join(
-        textwrap.wrap(address or "", width=40)
+        textwrap.wrap(address or "", width=45)
     )
     plt.title(f"Flood Susceptibility Over Time\n{wrapped_address}", fontsize=8, pad=10)
 
