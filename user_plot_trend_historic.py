@@ -212,7 +212,7 @@ def compute_trend_from_slope(slope_value):
     return slope, label, np.nan
 
 
-def compute_trend(years, values):
+def compute_trend(years, values, trend_label):
     """
     Computes:
     - linear trend slope
@@ -305,7 +305,7 @@ def compute_trend(years, values):
     # ---------------------------
     # FINAL LABEL WITH CONTEXT
     # ---------------------------
-    label = f"{label} ({variability_context})"
+    label = f"{trend_label} ({variability_context})"
 
     return label, r2
 
@@ -375,7 +375,7 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
 
     current_label = classify_fs(current_val)
 
-    label_var, r2 = compute_trend(YEARS, values)
+    label_var, r2 = compute_trend(YEARS, values, trend_label)
     wrapped_label = textwrap.fill(
     label_var,
     width=45,
