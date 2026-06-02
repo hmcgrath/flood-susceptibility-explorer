@@ -12,7 +12,7 @@
     <script src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
 
     <style>
-        #map { height: 600px; margin-bottom: 20px; }
+        #map { height: 750px; margin-bottom: 20px; }
         body { font-family: Arial; padding: 20px; }
 
         #suggestions {
@@ -215,7 +215,7 @@ function loadSubsetRaster() {
 // MAP
 // ---------------------------
 
-var map = L.map('map').setView([55.8, -98.7], 7);
+var map = L.map('map').setView([55.8, -98.7], 4);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19
