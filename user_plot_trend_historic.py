@@ -288,9 +288,9 @@ def compute_trend(years, values, trend_label):
 
     # 2. Noisy / inconsistent
     elif r2 < 0.4 or increase_ratio < 0.6:
-        label = "No clear change — values fluctuate over time"
+        label = " — values fluctuate over time"
     else:
-        label = "No clear change — values fluctuate over time"
+        label = " — values fluctuate over time"
     # 3. Linear trend (directional)
     #else:
     #    if slope < -X:
