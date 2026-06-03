@@ -476,10 +476,9 @@ Trend describes how flood risk has changed since 2000.
 
     # Text box (unchanged)
     text = f"""Current Class: {current_label}
-    Present day value: {current_val:.1f}
-    Projected future value (2050 @ SSP5-8.5): {future_val:.1f} 
-
-    #Trend: {wrapped_label}
+    Present day value: {current_val:.0f}
+    Projected future value (2050 @ SSP5-8.5): {future_val:.0f} 
+    Trend: {wrapped_label}
     
     """
 
