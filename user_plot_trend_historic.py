@@ -22,6 +22,7 @@ YEARS = list(range(2000, 2024))
 RASTER_TEMPLATE = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-historic/fsm-{}-historic-mc.tif"
 SLOPE_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-slope.tif"
 CURRENT_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-current.tif"
+FUTURE_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-future/fsm-2050-585-future-mc.tif"
 
 # Trend thresholds
 # ---------------------------
@@ -384,6 +385,11 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
 )
 
     # ---------------------------
+    # future value
+    # ---------------------------
+    future_val = sample_raster(FUTURE_RASTER, x, y)
+
+    # ---------------------------
     # SUMMARY
     # ---------------------------
 
@@ -471,8 +477,9 @@ Trend describes how flood risk has changed since 2000.
     # Text box (unchanged)
     text = f"""Current Class: {current_label}
     Present day value: {current_val:.1f}
+    Projected future value (2050 @ SSP5-8.5): {future_val:.1f} 
 
-    Trend: {wrapped_label}
+    #Trend: {wrapped_label}
     
     """
 
