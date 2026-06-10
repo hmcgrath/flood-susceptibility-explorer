@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Flood Susceptibility Tool</title>
+    <title>Flood Susceptibility Explorer</title>
 
     <link rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -9,10 +9,10 @@
 
     <script src="https://unpkg.com/georaster/dist/georaster.browserify.min.js"></script>
     <script src="https://unpkg.com/georaster-layer-for-leaflet/dist/georaster-layer-for-leaflet.min.js"></script>
-
+    <script src="https://unpkg.com/chroma-js@2.4.2/chroma.min.js"></script>
 
     <style>
-        #map { height: 400px; margin-bottom: 20px; }
+        #map { height: 500px; margin-bottom: 40px; }
         body { font-family: Arial; padding: 20px; }
 
         #suggestions {
@@ -40,13 +40,14 @@
 
 <body>
 
-<h2>Flood Susceptibility Tool</h2>
+<h2>Flood Susceptibility Explorer</h2>
 
-
-<div style="margin-top:20px; font-size:14px; line-height:1.5; max-width:800px;">
+<em>draft project ... work in progress</em>
+    
+<div style="margin-top:20px; font-size:14px; line-height:1.5; max-width:80%;">
 
 <p>
-This tool shows <strong>flood susceptibility</strong>, based on outputs from a machine learning model trained using historical flood locations and environmental data across Canada. The model (XGBoost) uses information such as elevation, soil type, land cover, vegetation, rainfall, temperature, and geographic context to estimate how likely an area is to experience flooding conditions. The results shown here come from the <a href="https://open.canada.ca/data/en/dataset/1074f781-85d3-4c86-86cb-fd1c339197dc" target="_blank">Flood Susceptibility Mapping dataset</a>, which provides annual maps from 2000 to 2023 and supports analysis of how conditions change over time.
+This page queries <strong>flood susceptibility</strong> datasets based on outputs from a machine learning model trained using historical spring flood locations and environmental data across Canada. The model (XGBoost) uses information such as elevation, soil type, land cover, vegetation, rainfall, temperature, and geographic context to estimate how likely an area is to experience flooding conditions. The results shown here come from the <a href="https://open.canada.ca/data/en/dataset/1074f781-85d3-4c86-86cb-fd1c339197dc" target="_blank">Flood Susceptibility Collection datasets</a>, which provides annual maps from 2000 to 2023 and supports analysis of how conditions change over time.
 </p>
 
 <p>
@@ -54,21 +55,75 @@ It is important to note that <strong>flood susceptibility is not the same as flo
 </p>
 
 <p>
-For official flood risk information, please use Canada's Flood Risk Finder, which is part of a national platform developed by Public Safety Canada. This tool allows users to search for a specific address and provides a risk rating from low to extreme. You can access it here: <a href="https://www.canada.ca/en/public-safety-canada/news/2026/04/government-of-canada-creates-platform-for-canada-wide-flood-risk-awareness-canadas-flood-risk-finder.html" target="_blank">Canada’s Flood Risk Finder</a>. In cases where results differ, the Flood Risk Finder should be considered the authoritative and official source.
+For official flood risk information, please use Canada's Flood Risk Finder, which is part of a national platform developed by Public Safety Canada. This tool allows users to search for a specific address and provides a risk rating from low to extreme, for a variety of types of flooding, e.g.: riverine, rainfall, coastal or a combination of these. You can access it here: <a href="https://www.canada.ca/en/public-safety-canada/news/2026/04/government-of-canada-creates-platform-for-canada-wide-flood-risk-awareness-canadas-flood-risk-finder.html" target="_blank">Canada’s Flood Risk Finder</a>. In cases where results differ, the Flood Risk Finder should be considered the authoritative and official source.
 </p>
 
 </div>
 
+<div style="margin-top:20px; font-size:14px; line-height:1.6; max-width:80%;">
+
+<h3>Instructions</h3>
+
+<ol>
+
+<li>
+<strong>Select a location to query</strong> using either an address or the map.
     
+    <ol type="a">
+    
+    <li>
+    <strong>Search by address:</strong> begin typing an address in the search box. The address will attempt to auto-complete as you type. If the desired address does not appear immediately, continue typing until it appears in the list, then click <strong>Run (Address)</strong>.
+    </li>
+
+    <li>
+    <strong>Select from the map:</strong> zoom to the area of interest and click a location directly on the map.
+    </li>
+
+    </ol>
+</li>
+
+<br>
+
+<li>
+A progress bar below the map will show the processing progress while the query is running.
+</li>
+
+<br>
+
+<li>
+A figure will appear below the map showing:
+    <ul>
+        <li>flood susceptibility values over time (2000–2023)</li>
+        <li>the current present-day flood susceptibility value for the selected location</li>
+    </ul>
+</li>
+
+<br>
+
+<li>
+You can enable the raster overlay using the <strong>Show Flood Susceptibility</strong> checkbox and adjust the transparency slider to better view the underlying map.
+    
+    <ul>
+        <li><strong>Darker blue colours</strong> indicate higher flood susceptibility</li>
+        <li><strong>Yellow colours</strong> indicate lower flood susceptibility</li>
+    </ul>
+</li>
+
+</ol>
+
+</div>
+
 <input type="text" id="address" placeholder="Enter address" size="50">
 <button onclick="runAddress()">Run (Address)</button>
 <button onclick="clearAll()">Clear</button>
 
 <ul id="suggestions"></ul>
 
-<h3>Or click on map:</h3>
 
+
+    
 <div id="map"></div>
+<progress id="progressBar" value="0" max="100" style="display:none; width:100%;"></progress>
 
 <label>
     <input type="checkbox" id="toggleRaster">
@@ -81,7 +136,7 @@ For official flood risk information, please use Canada's Flood Risk Finder, whic
     Transparency:
     <input type="range" id="opacitySlider" min="0" max="1" step="0.1" value="0.6">
 </label>
-
+<p></p>
 
 <img id="result" style="margin-top:20px; max-width:100%; border:1px solid #ccc;">
 <p></p>
@@ -103,7 +158,7 @@ function loadSubsetRaster() {
         return;
     }
 
-    fetch("https://hmcgrath.github.io/flood-susceptibility-explorer.onrender.com/subset", {
+    fetch("https://flood-susceptibility-explorer.onrender.com/subset", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
@@ -122,19 +177,26 @@ function loadSubsetRaster() {
             map.removeLayer(rasterLayer);
         }
 
+       const scale = chroma.scale("YlGnBu").domain([0, 100]);
+
         rasterLayer = new GeoRasterLayer({
             georaster: georaster,
             opacity: document.getElementById("opacitySlider").value,
             resolution: 128,
+        
             pixelValuesToColorFn: function(val) {
-
+        
                 if (!val || val[0] == null) return null;
-
+        
                 let v = val[0];
-
-                if (v < 39) return "rgba(200,200,200,0.5)";
-                if (v < 80) return "rgba(255,165,0,0.5)";
-                return "rgba(255,0,0,0.5)";
+        
+                // ✅ Handle nodata
+                if (v === 255) return null;  // transparent
+        
+                // ✅ Optional: clamp values
+                v = Math.max(0, Math.min(100, v));
+        
+                return scale(v).alpha(0.6).css();
             }
         });
 
@@ -153,7 +215,7 @@ function loadSubsetRaster() {
 // MAP
 // ---------------------------
 
-var map = L.map('map').setView([45.4, -75.7], 10);
+var map = L.map('map').setView([62.8, -98.7], 4);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19
@@ -275,9 +337,34 @@ function runAddress() {
 // RUN WITH COORDS
 // ---------------------------
 
-function runCoords(lat, lon, address=null) {
+function runCoords(lat, lon, address = null) {
 
-    fetch("https://hmcgrath.github.io/flood-susceptibility-explorer.onrender.com/run", {
+    // ✅ Clear previous output
+    const img = document.getElementById("resultImage");
+    if (img) {
+        img.src = "";
+        img.style.display = "none";
+    }
+
+    const progress = document.getElementById("progressBar");
+    let progressValue = 0;
+    let interval = null;
+    
+    if (progress) {
+        progress.style.display = "block";
+        progress.value = 0;
+
+        // Simulate progress
+        interval = setInterval(() => {
+            if (progressValue < 90) {
+                progressValue += 5;
+                progress.value = progressValue;
+            }
+        }, 300);
+    }
+
+
+    fetch("https://flood-susceptibility-explorer.onrender.com/run", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
@@ -292,13 +379,25 @@ function runCoords(lat, lon, address=null) {
         }
         return res.json();
     })
-    .then(data => showResult(data))
+    
+    .then(data => {
+        // Finish progress
+        if (progress) {
+            clearInterval(interval);
+            progress.value = 100;
+            setTimeout(() => progress.style.display = "none", 500);
+        }
+
+        showResult(data);
+    })
     .catch(err => {
+        if (progress) clearInterval(interval);
+
         console.error(err);
         alert("Error connecting to backend");
     });
-}
 
+}
 
 // ---------------------------
 // SHOW RESULT
