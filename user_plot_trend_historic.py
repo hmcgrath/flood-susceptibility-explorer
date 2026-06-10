@@ -1,10 +1,9 @@
 import matplotlib
-matplotlib.use("Agg")
 
 import numpy as np
 from rasterio.warp import transform
 import matplotlib.pyplot as plt
-from scipy import stats
+
 from sklearn.linear_model import LinearRegression
 import requests
 
@@ -20,14 +19,44 @@ import textwrap
 YEARS = list(range(2000, 2024))
 
 RASTER_TEMPLATE = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-historic/fsm-{}-historic-mc.tif"
-
+SLOPE_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-slope.tif"
 CURRENT_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-current.tif"
+FUTURE_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-future/fsm-2050-585-future-mc.tif"
 
 # Trend thresholds
-X = 1.0     # strong change
-XA = 0.3    # weak change
+# ---------------------------
+# CLASSIFICATION THRESHOLDS
+# ---------------------------
+#Strong shift  → slope > 5000 or < -5000  
+#Weak shift    → slope between 2000–5000  
+#No change     → -2000 to +2000  
+X = 5000     # strong change
+XA = 2000    # weak change
 
 ##Helper function
+
+def linear_trend(years, values):
+    mask = ~np.isnan(values)
+
+    x = np.asarray(years)[mask]
+    y = np.asarray(values)[mask]
+
+    if len(y) < 3:
+        return np.nan, np.nan, np.nan
+
+    # linear regression
+    slope, intercept = np.polyfit(x, y, 1)
+
+    # predictions
+    y_pred = slope * x + intercept
+
+    # R²
+    ss_res = np.sum((y - y_pred) ** 2)
+    ss_tot = np.sum((y - np.mean(y)) ** 2)
+
+    r2 = 1 - ss_res / ss_tot if ss_tot > 0 else np.nan
+
+    return slope, intercept, r2
 
 def clean_address(address):
     if not address:
@@ -54,6 +83,26 @@ def clean_address(address):
 # ---------------------------
 # GEOCODING (Nominatim)
 # ---------------------------
+
+def geocode_address_cda(address):
+    url = "https://geolocator.api.geo.ca/"
+    params = {
+        "q": address,
+        "lang": "en"
+    }
+
+    response = requests.get(url, params=params)
+    response.raise_for_status()
+
+    data = response.json()
+
+    if not data:
+        raise ValueError("No results found")
+
+    result = data[0]
+
+    return float(result["lat"]), float(result["lng"])
+    
 def geocode_address(address):
     url = "https://nominatim.openstreetmap.org/search"
     params = {"q": address, "format": "json", "limit": 1}
@@ -124,20 +173,58 @@ def classify_fs(val):
 # TREND ANALYSIS
 # ---------------------------
 
-from scipy import stats
-from scipy import stats
 import numpy as np
 
-from scipy import stats
-import numpy as np
+def compute_trend_from_slope(slope_value):
 
-def compute_trend(years, values):
+    # ---------------------------
+    # CLEAN INPUT
+    # ---------------------------
+    if slope_value is None or np.isnan(slope_value):
+        return np.nan, "No data", np.nan
+
+    # ---------------------------
+    # DECODE SLOPE
+    # ---------------------------
+    slope = slope_value - 10000  # center at zero
+
+
+    # ---------------------------
+    # CLASSIFICATION
+    # ---------------------------
+
+    # ✅ No change zone
+    if -XA <= slope <= XA:
+        label = "No clear change"
+
+    # ✅ decreases
+    elif slope < -X:
+        label = "Clear decrease"
+    elif slope < -XA:
+        label = "Slight decrease"
+
+    # ✅ increases
+    elif slope <= X:
+        label = "Slight increase"
+    else:
+        label = "Clear increase"
+
+    return slope, label, np.nan
+
+
+def compute_trend(years, values, trend_label):
+    """
+    Computes:
+    - linear trend slope
+    - contextual trend label (direction + variability)
+    - r²
+    """
 
     # ---------------------------
     # CLEAN DATA
     # ---------------------------
     mask = ~np.isnan(values)
-    years_clean = np.array(years)[mask]
+    years_clean  = np.array(years)[mask]
     values_clean = np.array(values)[mask]
 
     if len(values_clean) < 3:
@@ -146,20 +233,23 @@ def compute_trend(years, values):
     # ---------------------------
     # LINEAR TREND
     # ---------------------------
-    slope, intercept, r_value, p_value, std_err = stats.linregress(
-        years_clean, values_clean
-    )
-    r2 = r_value ** 2
+    slope, intercept = np.polyfit(years_clean, values_clean, 1)
 
+    pred = slope * years_clean + intercept
+
+    ss_res = np.sum((values_clean - pred) ** 2)
+    ss_tot = np.sum((values_clean - np.mean(values_clean)) ** 2)
+
+    r2 = 1 - ss_res / ss_tot if ss_tot > 0 else np.nan
     # ---------------------------
     # STEP CHANGE (EARLY vs LATE)
     # ---------------------------
     mid = len(values_clean) // 2
     early = values_clean[:mid]
-    late = values_clean[mid:]
+    late  = values_clean[mid:]
 
     early_mean = np.mean(early)
-    late_mean = np.mean(late)
+    late_mean  = np.mean(late)
     level_change = late_mean - early_mean
 
     # variability in recent years
@@ -172,37 +262,58 @@ def compute_trend(years, values):
     increase_ratio = np.sum(diffs > 0) / len(diffs) if len(diffs) > 0 else 0
 
     # ---------------------------
+    # VARIABILITY CONTEXT
+    # ---------------------------
+    overall_std = np.std(values_clean)
+    recent_vs_past = late_std / (np.std(early) + 1e-9)
+
+    if recent_vs_past > 1.5:
+        variability_context = "with increasing variability in recent years"
+    elif recent_vs_past < 0.75:
+        variability_context = "with stabilizing values recently"
+    else:
+        variability_context = "with typical variability"
+
+    # ---------------------------
     # CLASSIFICATION
     # ---------------------------
 
-  
-    # ✅ 1. Strong level shift (only if big AND stable)
+    # 1. Strong level shift (only if big AND stable)
     if abs(level_change) > 20 and late_std < 10:
         if level_change > 0:
             label = "Higher in recent years"
         else:
             label = "Lower in recent years"
 
-    # ✅ 2. Noisy / inconsistent
+    # 2. Noisy / inconsistent
     elif r2 < 0.4 or increase_ratio < 0.6:
-        label = "No clear change — values go up and down over time"
-
-    # ✅ 3. Linear trend (only if real)
-    elif slope < -X:
-        label = "Clear decrease"
-    elif slope < -XA:
-        label = "Slight decrease"
-    elif slope <= XA:
-        label = "No clear change"
-    elif slope <= X:
-        label = "Slight increase"
+        label = " — values fluctuate over time"
     else:
-        label = "Clear increase"
+        label = " — values fluctuate over time"
+    # 3. Linear trend (directional)
+    #else:
+    #    if slope < -X:
+    #        label = "Clear decrease"
+    #    elif slope < -XA:
+    #        label = "Slight decrease"
+    #    elif slope <= XA:
+    #        label = "No clear change"
+    #    elif slope <= X:
+    #        label = "Slight increase"
+    #    else:
+    #        label = "Clear increase"
 
-    return slope, label, r2
+    # ---------------------------
+    # FINAL LABEL WITH CONTEXT
+    # ---------------------------
+    label = f"{trend_label}, {label}, ({variability_context})"
+
+    return label, r2
+
 # ---------------------------
 # MAIN WORKFLOW
 # ---------------------------
+
 def run_analysis(address=None, lat=None, lon=None, geocode=True):
 
     # ---------------------------
@@ -210,15 +321,21 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
     # ---------------------------
     if address is None or address == "":
         address = f"{lat:.4f}, {lon:.4f}"
-        
+
     location_str = address if address else f"Lat: {lat}, Lon: {lon}"
+    
     if geocode == True and address is not None:
         print(f"Geocoding address: {address}")
-        lat, lon = geocode_address(address)
-
+    
+        try:
+            lat, lon = geocode_address(address)
+        except Exception as e:
+            print(f"Primary geocoder failed: {e}")
+            lat, lon = geocode_address_cda(address)
+    
     elif lat is not None and lon is not None:
         print(f"Using provided coordinates: lat={lat}, lon={lon}")
-
+    
     else:
         raise ValueError("You must provide either an address or lat/lon coordinates")
 
@@ -250,10 +367,26 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
     # TREND
     # ---------------------------
 
-    slope, trend_label, r = compute_trend(YEARS, values)
+    x, y = to_epsg3979(lat, lon)
+
+    slope_val = sample_raster(SLOPE_RASTER, x, y)
+
+    slope, trend_label, _ = compute_trend_from_slope(slope_val)
+
+
     current_label = classify_fs(current_val)
 
-    
+    label_var, r2 = compute_trend(YEARS, values, trend_label)
+    wrapped_label = textwrap.fill(
+    label_var,
+    width=45,
+    subsequent_indent="       "
+)
+
+    # ---------------------------
+    # future value
+    # ---------------------------
+    future_val = sample_raster(FUTURE_RASTER, x, y)
 
     # ---------------------------
     # SUMMARY
@@ -270,6 +403,8 @@ Current flood susceptibility: {current_label}
 Value: {current_val:.1f} out of 100
 
 Trend: {trend_label}
+Trend variability: {label_var}
+R²: {r2:.2f}
 
 What this means:
 - Low: flooding is unlikely
@@ -293,8 +428,8 @@ Trend describes how flood risk has changed since 2000.
     # Normalize color scale FIXED from 0 to 100
     norm = mcolors.Normalize(vmin=0, vmax=100)
 
-    # Colormap: orange → red
-    cmap = plt.cm.OrRd
+    # Colormap: yellow green blue
+    cmap = plt.cm.YlGnBu
 
     # Scatter plot (points only)
     sc = plt.scatter(
@@ -321,14 +456,16 @@ Trend describes how flood risk has changed since 2000.
     # Colorbar (important for interpretation)
     cbar = plt.colorbar(sc)
     cbar.set_label("Flood Susceptibility (0–100)")
-
+    
+    #set y limit fixed 0 to 100
+    plt.ylim(0, 100)
     # Labels
     plt.xlabel("Year")
     plt.ylabel("Flood Susceptibility (0–100)")
     address = clean_address(address)
     
     wrapped_address = "\n".join(
-        textwrap.wrap(address or "", width=40)
+        textwrap.wrap(address or "", width=45)
     )
     plt.title(f"Flood Susceptibility Over Time\n{wrapped_address}", fontsize=8, pad=10)
 
@@ -338,9 +475,9 @@ Trend describes how flood risk has changed since 2000.
 
     # Text box (unchanged)
     text = f"""Current Class: {current_label}
-    Present day value: {current_val:.1f}
-
-    Trend: {trend_label}
+    Present day value: {current_val}
+    Projected future value (2050 @ SSP5-8.5): {future_val} 
+    Trend: {wrapped_label}
     
     """
 
@@ -373,7 +510,7 @@ Trend describes how flood risk has changed since 2000.
 
 if __name__ == "__main__":
     #address = input("Enter your address: ")
-    #address = "6658 Benoit St, Ottawa, Ontario, Canada, K1C 3K9"
+    #address = "580 Booth St, Ottawa, Ontario, Canada"
     
     run_analysis(
         address="255 2nd St, Dryden, ON P8N 2V5, Canada",
@@ -383,20 +520,3 @@ if __name__ == "__main__":
     )
 
 ####
-# address="430 rue de la terrasse-eardley, Gatineau, Quebec, Canada",
-#lat=45.40818925757535, 
-#lon=-75.85714185767098,
-#geocode = False
-
-
-
-
-#address="668 Philip St, Fredericton, NB, Canada",
-#lat=45.96911515216952,  
-#lon=-66.62531685991145,
-#geocode = False
-
-#address="850 Riverside Dr, Fredericton, NB, Canada",
-#lat=45.93274745529327, 
-#lon=-66.60447980611909,
-#geocode = False
