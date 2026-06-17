@@ -315,9 +315,9 @@ def compute_trend(years, values, trend_label):
 
     # 2. Noisy / inconsistent
     elif r2 < 0.4 or increase_ratio < 0.6:
-        label = "values fluctuate over time "
+        label = "values fluctuate over time"
     else:
-        label = "values fluctuate over time "
+        label = "values fluctuate over time"
     # 3. Linear trend (directional)
     #else:
     #    if slope < -X:
@@ -557,16 +557,15 @@ Trend describes how flood risk has changed since 2000.
 
 
     plt.rcParams.update({
-    "font.size": 6,
-    "axes.titlesize": 6,
-    "axes.labelsize": 6,
-    "xtick.labelsize": 5,
-    "ytick.labelsize": 5,
-    "legend.fontsize": 6
+    "font.size": 4,
+    "axes.titlesize": 4,
+    "axes.labelsize": 4,
+    "xtick.labelsize":3,
+    "ytick.labelsize": 4,
+    "legend.fontsize": 4
     })
 
     plt.tight_layout()
-    #plt.savefig("flood_susceptibility_report.png", dpi=300)
     plt.savefig("flood_susceptibility_report.png", dpi=300)
     #plt.show()
 
