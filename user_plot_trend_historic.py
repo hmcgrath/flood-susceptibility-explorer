@@ -47,6 +47,22 @@ XA = 2000    # weak change
 
 ##Helper function
 
+def transform_year(year):
+    """
+    Piecewise scaling:
+    - 2000–2025 → stretched
+    - 2025–2100 → compressed
+    """
+
+    if year <= 2025:
+        # map 2000–2025 → 0–2
+        return (year - 2000) / (2025 - 2000) * 2
+
+    else:
+        # map 2025–2100 → 2–3
+        return 2 + (year - 2025) / (2100 - 2025) * 1
+``
+
 def linear_trend(years, values):
     mask = ~np.isnan(values)
 
@@ -447,9 +463,22 @@ Trend describes how flood risk has changed since 2000.
     # Colormap: yellow green blue
     cmap = plt.cm.YlGnBu
 
+    years_transformed = [transform_year(y) for y in YEARS]
+    
+    sc = plt.scatter(
+        years_transformed,
+        values_array,
+        c=values_array,
+        cmap=cmap,
+        norm=norm,
+        s=75,
+        edgecolor='none',
+        label="Historical values"
+    )
+    future_years_t = [transform_year(fp[1]) for fp in future_points]
     # Scatter plot (points only)
     sc = plt.scatter(
-        YEARS,
+        future_years_t,
         values_array,
         c=values_array,
         cmap=cmap,
@@ -489,6 +518,8 @@ Trend describes how flood risk has changed since 2000.
             label="Current value"
         )
 
+    plt.axvline(transform_year(2025), color='gray', linestyle=':', linewidth=1)
+
     # Colorbar (important for interpretation)
     cbar = plt.colorbar(sc)
     cbar.set_label("Flood Susceptibility (0–100)")
@@ -496,6 +527,12 @@ Trend describes how flood risk has changed since 2000.
     #set y limit fixed 0 to 100
     plt.ylim(0, 100)
     # Labels
+    # choose nice tick labels
+    tick_years = [2000, 2005, 2010, 2015, 2020, 2025, 2050, 2070, 2100]
+    tick_positions = [transform_year(y) for y in tick_years]
+    
+    plt.xticks(tick_positions, tick_years)
+
     plt.xlabel("Year")
     plt.ylabel("Flood Susceptibility (0–100)")
     address = clean_address(address)
