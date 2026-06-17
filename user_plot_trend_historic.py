@@ -585,11 +585,6 @@ if __name__ == "__main__":
         lon='',
         geocode = True
     )
-run_analysis(
-    address="255 2nd St, Dryden, ON P8N 2V5, Canada",
-    lat='', 
-    lon='',
-    geocode = True
-)
+
 
 ####
