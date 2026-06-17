@@ -61,7 +61,7 @@ def transform_year(year):
     else:
         # map 2025–2100 → 2–3
         return 2 + (year - 2025) / (2100 - 2025) * 1
-``
+
 
 def linear_trend(years, values):
     mask = ~np.isnan(values)
@@ -309,15 +309,15 @@ def compute_trend(years, values, trend_label):
     # 1. Strong level shift (only if big AND stable)
     if abs(level_change) > 20 and late_std < 10:
         if level_change > 0:
-            label = "Higher in recent years"
+            label = "Higher in recent years "
         else:
             label = "Lower in recent years"
 
     # 2. Noisy / inconsistent
     elif r2 < 0.4 or increase_ratio < 0.6:
-        label = " — values fluctuate over time"
+        label = "values fluctuate over time "
     else:
-        label = " — values fluctuate over time"
+        label = "values fluctuate over time "
     # 3. Linear trend (directional)
     #else:
     #    if slope < -X:
@@ -475,38 +475,28 @@ Trend describes how flood risk has changed since 2000.
         edgecolor='none',
         label="Historical values"
     )
+
+    # ---------------------------
+    # FUTURE POINTS (CORRECT)
+    # ---------------------------
+
     future_years_t = [transform_year(fp[1]) for fp in future_points]
-    # Scatter plot (points only)
-    sc = plt.scatter(
+    future_vals = [fp[2] for fp in future_points]
+
+    sc_future = plt.scatter(
         future_years_t,
-        values_array,
-        c=values_array,
-        cmap=cmap,
-        norm=norm,
-        s=75,
-        edgecolor='none',         
-        label="Historical values"
-    )
-
-    # ---------------------------
-    # FUTURE POINTS
-    # ---------------------------
-
-    future_years = [fp[1] for fp in future_points]
-    future_vals  = [fp[2] for fp in future_points]
-
-    # use same colormap for consistency
-    plt.scatter(
-        future_years,
         future_vals,
         c=future_vals,
         cmap=cmap,
         norm=norm,
-        marker='D',       # diamond marker
-        s=90,
-        edgecolor='black',
+        marker='D',
+        s=60,
+        alpha=0.7,
+        edgecolor='none',
         label="Future projections"
     )
+
+
 
     # Current value line
     if not np.isnan(current_val):
@@ -518,7 +508,7 @@ Trend describes how flood risk has changed since 2000.
             label="Current value"
         )
 
-    plt.axvline(transform_year(2025), color='gray', linestyle=':', linewidth=1)
+    #plt.axvline(transform_year(2025), color='gray', linestyle=':', linewidth=1)
 
     # Colorbar (important for interpretation)
     cbar = plt.colorbar(sc)
@@ -554,12 +544,17 @@ Trend describes how flood risk has changed since 2000.
     """
 
     plt.text(
-        0.02, 0.98, text,
-        fontsize=8,
-        transform=plt.gca().transAxes,
-        verticalalignment='top',
-        bbox=dict(boxstyle="round", alpha=0.2)
+    0.02, 0.98, text,
+    fontsize=7,                     # slightly smaller text
+    transform=plt.gca().transAxes,
+    verticalalignment='top',
+    bbox=dict(
+        boxstyle="round,pad=0.3",   # ✅ smaller padding
+        alpha=0.15,                 # ✅ lighter fill
+        facecolor="#B3C6DA"         # optional: nicer muted blue
     )
+    )
+
 
     plt.rcParams.update({
     "font.size": 6,
@@ -590,5 +585,11 @@ if __name__ == "__main__":
         lon='',
         geocode = True
     )
+run_analysis(
+    address="255 2nd St, Dryden, ON P8N 2V5, Canada",
+    lat='', 
+    lon='',
+    geocode = True
+)
 
 ####
