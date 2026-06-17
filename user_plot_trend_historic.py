@@ -22,8 +22,19 @@ YEARS = list(range(2000, 2024))
 RASTER_TEMPLATE = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-historic/fsm-{}-historic-mc.tif"
 SLOPE_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-slope.tif"
 CURRENT_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-trends/fs-2000-2023-current.tif"
-FUTURE_RASTER = "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-future/fsm-2050-585-future-mc.tif"
 
+# ---------------------------
+# FUTURE RASTERS
+# ---------------------------
+
+FUTURE_RASTERS = [
+    ("2050 SSP5-8.5", 2050, "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-future/fsm-2050-585-future-mc.tif"),
+    ("2050 SSP2-4.5", 2050, "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-future/fsm-2050-245-future-mc.tif"),
+    ("2070 SSP2-4.5", 2070, "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-future/fsm-2070-245-future-mc.tif"),
+    ("2070 SSP5-8.5", 2070, "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-future/fsm-2070-585-future-mc.tif"),
+    ("2100 SSP2-4.5", 2100, "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-future/fsm-2100-245-future-mc.tif"),
+    ("2100 SSP5-8.5", 2100, "https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/water/flood-susceptibility/fs-future/fsm-2100-585-future-mc.tif"),
+]
 # Trend thresholds
 # ---------------------------
 # CLASSIFICATION THRESHOLDS
@@ -382,16 +393,20 @@ def run_analysis(address=None, lat=None, lon=None, geocode=True):
     label_var,
     width=45,
     subsequent_indent="       "
-)
+    )
+
 
     # ---------------------------
-    # future value
+    # SAMPLE FUTURE RASTERS
     # ---------------------------
-    future_val = sample_raster(FUTURE_RASTER, x, y)
-
-    # ---------------------------
-    # SUMMARY
-    # ---------------------------
+    future_points = []
+    
+    for label, year, url in FUTURE_RASTERS:
+        val = sample_raster(url, x, y)
+        future_points.append((label, year, val))
+        # ---------------------------
+        # SUMMARY
+        # ---------------------------
 
     location_str = address if address else f"Lat: {lat}, Lon: {lon}"
 
@@ -444,6 +459,26 @@ Trend describes how flood risk has changed since 2000.
         label="Historical values"
     )
 
+    # ---------------------------
+    # FUTURE POINTS
+    # ---------------------------
+
+    future_years = [fp[1] for fp in future_points]
+    future_vals  = [fp[2] for fp in future_points]
+
+    # use same colormap for consistency
+    plt.scatter(
+        future_years,
+        future_vals,
+        c=future_vals,
+        cmap=cmap,
+        norm=norm,
+        marker='D',       # diamond marker
+        s=90,
+        edgecolor='black',
+        label="Future projections"
+    )
+
     # Current value line
     if not np.isnan(current_val):
         plt.axhline(
@@ -477,7 +512,6 @@ Trend describes how flood risk has changed since 2000.
     # Text box (unchanged)
     text = f"""Current Class: {current_label}
     Present day value: {current_val}
-    Projected future value (2050 @ SSP5-8.5): {future_val} 
     Trend: {wrapped_label}
     
     """
